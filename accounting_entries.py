@@ -1,12 +1,15 @@
 import pandas as pd
 from datetime import datetime
 import calendar
+import xlsxwriter
 
-# ========== Part 1: Generate amortization schedule ==========
+AS_AT_MONTH = "Oct-24"
+YEAR = "2024"
+
 def generate_schedule(item_name, invoice_number, cost, duration_months, start_month_str):
+    monthly_value = round(-cost / 12, 7)  
     start_date = datetime.strptime("01-" + start_month_str, "%d-%b-%y")
-    months = pd.date_range(start=start_date, periods=duration_months, freq='MS')
-    monthly_value = round(-cost / duration_months, 4)
+    as_at_date = datetime.strptime("01-" + AS_AT_MONTH, "%d-%b-%y")
 
     schedule = {
         "Item": item_name,
@@ -14,87 +17,89 @@ def generate_schedule(item_name, invoice_number, cost, duration_months, start_mo
         "Invoice Amount": cost,
     }
 
-    # Fill monthly amortization values
-    for m in months:
-        col_name = m.strftime("%b-%y")
-        schedule[col_name] = monthly_value
+    all_months = pd.date_range(f"{YEAR}-01-01", f"{YEAR}-12-01", freq='MS')
+    num_deducted_months = 0
 
-    # Ensure all months of 2024 are present (optional, for formatting consistency)
-    for m in pd.date_range("2024-01-01", "2024-12-01", freq='MS'):
+    for m in all_months:
         col = m.strftime("%b-%y")
-        schedule.setdefault(col, None)
+        if m >= start_date:
+            schedule[col] = monthly_value
+            if m <= as_at_date:
+                num_deducted_months += 1
+        else:
+            schedule[col] = ""
 
-    # Compute balance left over (if any rounding issue)
-    schedule["Balance"] = round(cost + (monthly_value * duration_months), 4)
+    # Corrected balance calculation: amount - (num deducted × abs(monthly))
+    schedule["Balance"] = round(cost - abs(monthly_value) * num_deducted_months, 7)
     return pd.DataFrame([schedule])
 
-# ========== Part 2: Generate journal entries ==========
 def get_last_day(month_str):
     dt = datetime.strptime("01-" + month_str, "%d-%b-%y")
     last_day = calendar.monthrange(dt.year, dt.month)[1]
     return dt.replace(day=last_day).strftime("%d/%m/%Y")
 
-def generate_entries(schedule_df, month_str):
+def generate_all_entries(schedule_df):
     entries = []
-    entry_date = get_last_day(month_str)
-
     for idx, row in schedule_df.iterrows():
-        amount = row.get(month_str)
-        if amount and amount != 0:
-            item = row["Item"]
-            ref = row["Invoice Number"]
-            exp_acc = f"EXP{str(idx+1).zfill(3)}"
-            pre_acc = f"PRE{str(idx+1).zfill(3)}"
+        item = row["Item"]
+        ref = row["Invoice Number"]
+        exp_acc = f"EXP{str(idx+1).zfill(3)}"
+        pre_acc = f"PRE{str(idx+1).zfill(3)}"
 
-            entries.append({
-                "Date": entry_date,
-                "Description": f"Prepayment amortisation for {item}",
-                "Reference": ref,
-                "Account": exp_acc,
-                "Amount": round(abs(amount), 2)
-            })
-            entries.append({
-                "Date": entry_date,
-                "Description": f"Prepayment amortisation for {item}",
-                "Reference": ref,
-                "Account": pre_acc,
-                "Amount": round(-abs(amount), 2)
-            })
+        for month in row.index:
+            if month.endswith("-24") and isinstance(row[month], (int, float)) and row[month] != 0:
+                amount = round(abs(row[month]), 2)
+                entry_date = get_last_day(month)
+
+                entries.append({
+                    "Date": entry_date,
+                    "Description": f"Prepayment amortisation for {item}",
+                    "Reference": ref,
+                    "Account": exp_acc,
+                    "Amount": amount
+                })
+                entries.append({
+                    "Date": entry_date,
+                    "Description": f"Prepayment amortisation for {item}",
+                    "Reference": ref,
+                    "Account": pre_acc,
+                    "Amount": -amount
+                })
+
     return pd.DataFrame(entries)
 
-# ========== Part 3: Sample usage ==========
 if __name__ == "__main__":
-    # Example 1: Webhosting - 12 months from Jan-24
-    webhosting = generate_schedule(
-        item_name="Webhosting",
-        invoice_number="46248",
-        cost=10000,
-        duration_months=12,
-        start_month_str="Jan-24"
-    )
+    webhosting = generate_schedule("Webhosting", "46248", 10000, 12, "Jan-24")
+    insurance = generate_schedule("Insurance", "89017", 1200, 12, "Apr-24")
 
-    # Example 2: Insurance - 9 months from Apr-24
-    insurance = generate_schedule(
-        item_name="Insurance",
-        invoice_number="89017",
-        cost=1200,
-        duration_months=9,
-        start_month_str="Apr-24"
-    )
+    full_schedule = pd.concat([webhosting, insurance], ignore_index=True)
+    journal_df = generate_all_entries(full_schedule)
 
-    # Combine the schedules into one
-    combined_schedule = pd.concat([webhosting, insurance], ignore_index=True)
+    # === Export to Excel ===
+    with pd.ExcelWriter("prepayment_schedule_oct24.xlsx", engine="xlsxwriter") as writer:
+        workbook = writer.book
+        startrow = 2
 
-    # === Print amortization schedule ===
-    print("========== AMORTIZATION SCHEDULE ==========")
-    print(combined_schedule.to_string(index=False))
+        # --- Sheet 1: Prepayment Schedule ---
+        full_schedule.to_excel(writer, sheet_name="Prepayment Schedule", startrow=startrow, index=False)
+        worksheet = writer.sheets["Prepayment Schedule"]
 
-    # === Generate journal entries for a specific month ===
-    month_input = "May-24"
-    print(f"\n========== JOURNAL ENTRIES FOR {month_input.upper()} ==========")
-    journal_df = generate_entries(combined_schedule, month_input)
+        # Merge header title
+        last_col_letter = chr(65 + len(full_schedule.columns) - 1)
+        worksheet.merge_range(f'A1:{last_col_letter}1', f"Prepayment schedule as at   {AS_AT_MONTH}",
+                              workbook.add_format({'bold': True, 'align': 'center'}))
 
-    if journal_df.empty:
-        print(f"No amortizations found for {month_input}.")
-    else:
-        print(journal_df.to_string(index=False))
+        # Total Balance
+        balance_col_idx = full_schedule.columns.get_loc("Balance")
+        balance_col_letter = chr(65 + balance_col_idx)
+        total_row_excel = startrow + 1 + len(full_schedule)  # data starts at row 3
+
+        worksheet.write(f"{balance_col_letter[:-1]}{total_row_excel}", "Total Balance:")
+        worksheet.write(f"{balance_col_letter}{total_row_excel}",
+                        f'=SUM({balance_col_letter}{startrow + 3}:{balance_col_letter}{total_row_excel - 1})',
+                        workbook.add_format({'bold': True, 'num_format': '#,##0.00'}))
+
+        # --- Sheet 2: Journal Entries ---
+        journal_df.to_excel(writer, sheet_name="Journal Entries", index=False)
+
+    print("✅ Exported to prepayment_schedule_oct24.xlsx with correct spreads and balance total.")
