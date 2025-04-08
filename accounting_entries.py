@@ -7,6 +7,7 @@ from xlsxwriter.utility import xl_col_to_name
 AS_AT_MONTH = "Oct-24"
 START_PERIOD = "Jan-24"
 END_PERIOD = "Dec-25"
+TARGET_EXPORT_MONTH = "Jun-24"  # ← CHANGE THIS to any valid month, e.g., "Feb-25"
 
 def generate_schedule(item_name, invoice_number, cost, duration_months, start_month_str):
     monthly_value = round(-cost / 12, 7)
@@ -75,6 +76,10 @@ def generate_all_entries(schedule_df):
 
     return pd.DataFrame(entries)
 
+def get_entries_for_month(journal_df, month_str):
+    target_date = get_last_day(month_str)
+    return journal_df[journal_df["Date"] == target_date]
+
 # ========== MAIN ==========
 if __name__ == "__main__":
     input_df = pd.read_csv("prepaid_items.csv")
@@ -93,7 +98,7 @@ if __name__ == "__main__":
     full_schedule = pd.concat(schedules, ignore_index=True)
     journal_df = generate_all_entries(full_schedule)
 
-    # === Export to Excel ===
+    # === Export to Excel (main schedule file) ===
     with pd.ExcelWriter("prepayment_schedule_flexible.xlsx", engine="xlsxwriter") as writer:
         workbook = writer.book
         startrow = 2
@@ -107,16 +112,15 @@ if __name__ == "__main__":
         worksheet.merge_range(f"A1:{last_col_letter}1", f"Prepayment schedule as at   {AS_AT_MONTH}",
                               workbook.add_format({'bold': True, 'align': 'center'}))
 
-        # Total Balance Placement
+        # Total Balance
         balance_col_idx = full_schedule.columns.get_loc("Balance")
         balance_col_letter = xl_col_to_name(balance_col_idx)
         label_col_letter = xl_col_to_name(balance_col_idx - 1)
 
         num_data_rows = len(full_schedule)
-        formula_row = startrow + num_data_rows + 2  # header + data + 1 blank row
-        data_start_row = startrow + 1 + 1  # row with first balance value (row 4)
+        formula_row = startrow + num_data_rows + 2
+        data_start_row = startrow + 2
 
-        # Label and Formula
         worksheet.write(f"{label_col_letter}{formula_row}", "Total Balance:")
         worksheet.write_formula(f"{balance_col_letter}{formula_row}",
                                 f'=SUM({balance_col_letter}{data_start_row}:{balance_col_letter}{formula_row - 1})',
@@ -125,4 +129,14 @@ if __name__ == "__main__":
         # Sheet 2: Journal Entries
         journal_df.to_excel(writer, sheet_name="Journal Entries", index=False)
 
-    print("✅ Exported to prepayment_schedule_flexible.xlsx with correct total balance calculation.")
+    # === Export selected month journal entries to a dedicated Excel file ===
+    sample_entries = get_entries_for_month(journal_df, TARGET_EXPORT_MONTH)
+
+    if not sample_entries.empty:
+        safe_month = TARGET_EXPORT_MONTH.replace("/", "-").replace(" ", "")
+        output_excel = f"output_{safe_month}.xlsx"
+        with pd.ExcelWriter(output_excel, engine="xlsxwriter") as writer:
+            sample_entries.to_excel(writer, sheet_name="Entries", index=False)
+        print(f"📁 Exported journal entries for {TARGET_EXPORT_MONTH} → {output_excel}")
+    else:
+        print(f"⚠️ No entries found for {TARGET_EXPORT_MONTH}.")
