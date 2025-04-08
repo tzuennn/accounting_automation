@@ -8,7 +8,20 @@ def get_last_day(month_str):
 
 def apply_borders(ws, df, workbook, startrow=0, startcol=0):
     border_fmt = workbook.add_format({'border': 1})
+
+    # Track max width per column
+    col_widths = [len(str(col)) for col in df.columns]
+
     for row in range(df.shape[0] + 1):
         for col in range(df.shape[1]):
             value = df.columns[col] if row == 0 else df.iloc[row - 1, col]
+            value_str = str(value)
             ws.write(startrow + row, startcol + col, value, border_fmt)
+
+            # Update max width
+            if len(value_str) > col_widths[col]:
+                col_widths[col] = len(value_str)
+
+    # Set column widths
+    for col_idx, width in enumerate(col_widths):
+        ws.set_column(col_idx, col_idx, width + 2)  # +2 for padding
