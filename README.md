@@ -141,15 +141,59 @@ This will create:
 
 ---
 
-## Requirements
+## Requirements & Setup
 
-- Python 3.8+
-- Libraries: `pandas`, `xlsxwriter`
+### Requirements
 
-Install with:
+- **Python** 3.8 or above  
+  *(Recommended: Python 3.8 – 3.11 for best compatibility)*
+- **Libraries**:
+  - `pandas`
+  - `xlsxwriter`
+
+Install them easily with the command below.
+
+---
+
+###  Setup Instructions
+
+Follow these steps after unzipping the project:
+
+#### 1. Create Virtual Environment (Optional but Recommended)
+
+```bash
+python -m venv venv
+```
+
+#### 2. Activate Virtual Environment
+
+- **Windows**:
+  ```bash
+  venv\Scripts\activate
+  ```
+
+- **Mac/Linux**:
+  ```bash
+  source venv/bin/activate
+  ```
+
+---
+
+#### 3. Install Required Libraries
 
 ```bash
 pip install -r requirements.txt
 ```
 
+This will install all needed Python packages for the app to run properly.
+
 ---
+
+#### 4. Run the App
+
+```bash
+python main.py
+```
+
+Output Excel files will be saved in the `output/` folder.
+
