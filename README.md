@@ -104,7 +104,7 @@ This will create:
 
 ---
 
-### Filter: **Month = Jun-24** (All Items)
+### Filter: **Month = Jun-24** (All items)
 
 | Date       | Description                            | Reference | Account | Amount   |
 |------------|----------------------------------------|-----------|---------|----------|
@@ -119,7 +119,7 @@ This will create:
 
 ---
 
-### Filter: **Item = Insurance**
+### Filter: **Item = Insurance (All months)**
 
 | Date       | Description                          | Reference | Account | Amount   |
 |------------|--------------------------------------|-----------|---------|----------|

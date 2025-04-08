@@ -1,4 +1,3 @@
-# logic/journal.py
 from utils.formatting import get_last_day
 import pandas as pd
 
@@ -31,11 +30,11 @@ def generate_all_entries(schedule_df):
                 })
     return pd.DataFrame(entries)
 
-def filter_entries(journal_df, item="", month_str=""):
-    from utils.formatting import get_last_day
+def filter_entries(journal_df, item=None, month_str=None):
     if item:
-        journal_df = journal_df[journal_df["Item"].str.lower() == item.lower()]
+        item_set = set(i.strip().lower() for i in item) if isinstance(item, list) else {item.strip().lower()}
+        journal_df = journal_df[journal_df["Item"].str.lower().isin(item_set)]
     if month_str:
-        date_to_check = get_last_day(month_str)
-        journal_df = journal_df[journal_df["Date"] == date_to_check]
+        dates_to_match = {get_last_day(m.strip()) for m in month_str} if isinstance(month_str, list) else {get_last_day(month_str)}
+        journal_df = journal_df[journal_df["Date"].isin(dates_to_match)]
     return journal_df.drop(columns=["Item"])

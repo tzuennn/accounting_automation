@@ -44,16 +44,21 @@ def export_report(schedule_df, journal_df, as_at, output_filename="prepayment_sc
         apply_borders(writer.sheets["Journal Entries"], journal_df_nodrop, workbook)
 
     print(f"Report exported to {output_path}")
-# logic/export.py
 
 def export_filtered_entries(journal_df, item_filter, month_filter):
+    from logic.journal import filter_entries
+    import os
+    import pandas as pd
+    from utils.formatting import apply_borders
+
     filtered = filter_entries(journal_df, item=item_filter, month_str=month_filter)
     if filtered.empty:
         print("No matching journal entries for your filter.")
         return
 
-    item_part = item_filter.replace(" ", "_") if item_filter else "all"
-    month_part = month_filter.replace("-", "").lower() if month_filter else "all"
+    # Convert item/month to filename-friendly format
+    item_part = "_".join([s.replace(" ", "_") for s in item_filter]) if item_filter else "all"
+    month_part = "_".join([s.replace("-", "").lower() for s in month_filter]) if month_filter else "all"
     export_name = f"entries_{item_part}_{month_part}.xlsx"
     export_path = os.path.join("output", export_name)
 
