@@ -12,7 +12,7 @@ START_PERIOD = "Jan-24"       # e.g., "Jan-24"
 END_PERIOD = "Feb-25"         # e.g., "Dec-25"
 
 # Use comma-separated values for multiple filters
-ITEM_FILTER = ["Webhosting"]    # e.g., ["Webhosting", "Software"]
-MONTH_FILTER = ["May-24"]          # e.g., ["May-24"]
+ITEM_FILTER = ["Webhosting", "Insurance"]    # e.g., ["Webhosting", "Insurance"] or "" for all
+MONTH_FILTER = ["May-24", "Jun-24"]          # e.g., ["May-24"] or "" for all
 
 INPUT_FILE = "prepaid_items.csv"  # Path to input CSV

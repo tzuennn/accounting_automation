@@ -62,16 +62,20 @@ AS_AT_MONTH = "Oct-24"        # Used to calculate remaining balance
 START_PERIOD = "Jan-24"       # Start of the schedule
 END_PERIOD = "Dec-25"         # End of the schedule
 
-ITEM_FILTER = "Webhosting"    # e.g., "Webhosting" or leave "" for all items
-MONTH_FILTER = "May-24"       # e.g., "May-24" or leave "" for all months
+ITEM_FILTER = ["Webhosting", "Insurance"]    # e.g., ["Webhosting", "Insurance"] or "" for all
+MONTH_FILTER = ["May-24", "Jun-24"]          # e.g., ["May-24", "Jun-24"] or "" for all
 
 INPUT_FILE = "prepaid_items.csv"
+
 ```
 
 - Leave `ITEM_FILTER` or `MONTH_FILTER` as `""` to include all.
 
 For example, if I want to retrieve all the accounting entries of May-24, set `ITEM_FILTER = ""` and `MONTH_FILTER = "May-24"`.
+
 Similarly, if I want to retrieve all accounting entries of a particular item/service, eg Insurance, set `ITEM_FILTER = "Insurance"` and `MONTH_FILTER = ""`.
+
+To retrieve entries for multiple items (e.g., Webhosting and Insurance) across multiple months (e.g., May-24 and Jun-24), set `ITEM_FILTER = ["Webhosting", "Insurance"]` and `MONTH_FILTER = ["May-24", "Jun-24"]`.
 
 ---
 
@@ -131,6 +135,22 @@ This will create:
 | 30/06/2024 | Prepayment amortisation for Insurance | 89017     | PRE002  | -100.00  |
 | ...        | ...                                  | ...       | ...     | ...      |
 | 31/03/2025 | Prepayment amortisation for Insurance | 89017     | PRE002  | -100.00  |
+
+---
+
+### Filter: Item = ["Webhosting", "Insurance"], Month = ["May-24", "Jun-24"]
+
+| Date       | Description                            | Reference | Account | Amount   |
+|------------|----------------------------------------|-----------|---------|----------|
+| 31/05/2024 | Prepayment amortisation for Webhosting | 46248     | EXP001  | 833.33   |
+| 31/05/2024 | Prepayment amortisation for Webhosting | 46248     | PRE001  | -833.33  |
+| 30/06/2024 | Prepayment amortisation for Webhosting | 46248     | EXP001  | 833.33   |
+| 30/06/2024 | Prepayment amortisation for Webhosting | 46248     | PRE001  | -833.33  |
+| 31/05/2024 | Prepayment amortisation for Insurance  | 89017     | EXP002  | 100.00   |
+| 31/05/2024 | Prepayment amortisation for Insurance  | 89017     | PRE002  | -100.00  |
+| 30/06/2024 | Prepayment amortisation for Insurance  | 89017     | EXP002  | 100.00   |
+| 30/06/2024 | Prepayment amortisation for Insurance  | 89017     | PRE002  | -100.00  |
+
 
 ---
 
