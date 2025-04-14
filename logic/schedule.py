@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 
 def generate_schedule(item_name, invoice_number, cost, duration_months, start_month_str, as_at_month, start_period, end_period):
-    monthly_value = round(-cost / 12, 7)
+    monthly_value = round(-cost / duration_months, 7)
     start_date = datetime.strptime("01-" + start_month_str, "%d-%b-%y")
     as_at_date = datetime.strptime("01-" + as_at_month, "%d-%b-%y")
     schedule = {
@@ -22,7 +22,7 @@ def generate_schedule(item_name, invoice_number, cost, duration_months, start_mo
     deducted_months = 0
     for m in all_months:
         col = m.strftime("%b-%y")
-        if m >= start_date and filled_months < 12:
+        if m >= start_date and filled_months < duration_months:
             schedule[col] = monthly_value
             filled_months += 1
             if m <= as_at_date:
